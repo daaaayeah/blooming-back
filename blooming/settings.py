@@ -1,4 +1,5 @@
 from pathlib import Path
+from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -20,7 +21,8 @@ INSTALLED_APPS = [
 
     'apps.authentication',
     'apps.diary',
-    'apps.utils'
+    'apps.utils',
+    'apps.files'
 ]
 
 MIDDLEWARE = [
@@ -79,10 +81,13 @@ AUTH_PASSWORD_VALIDATORS = [
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
+    ),
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20
 }
 
 SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'AUTH_HEADER_TYPES': ('JWT',),
     'USER_ID_FIELD': 'username',
     'UPDATE_LAST_LOGIN': True
@@ -99,6 +104,11 @@ USE_L10N = True
 
 USE_TZ = True
 
+STATIC_ROOT = 'static'
 STATIC_URL = '/static/'
+
+MEDIA_ROOT = 'uploads'
+MEDIA_URL = '/uploads/'
+
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
