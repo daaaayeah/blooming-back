@@ -1,4 +1,4 @@
-from rest_framework.generics import CreateAPIView, ListCreateAPIView, RetrieveUpdateDestroyAPIView
+from rest_framework.generics import CreateAPIView, ListCreateAPIView, RetrieveUpdateDestroyAPIView, UpdateAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from rest_framework.response import Response
@@ -48,3 +48,34 @@ class DiaryRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
     queryset = Diary.objects.all()
     lookup_url_kwarg = 'diary_pk'
 
+
+class DiaryLikeAPIView(UpdateAPIView):
+    serializer_class = DiarySerializer
+    queryset = Diary.objects.all()
+    lookup_url_kwarg = 'diary_pk'
+
+    def update(self, request, *args, **kwargs):
+            partial = kwargs.pop('partial', False)
+            instance = self.get_object()
+
+            if self.request.user in instance.like.all():
+                return Response('This user already likes this diary.')
+            else:
+                instance._like(self.request.user)
+
+            return Response('liked')
+
+class DiaryUnlikeAPIView(UpdateAPIView):
+    serializer_class = DiarySerializer
+    queryset = Diary.objects.all()
+    lookup_url_kwarg = 'diary_pk'
+
+    def update(self, request, *args, **kwargs):
+            instance = self.get_object()
+
+            if self.request.user in instance.like.all():
+                instance._unlike(self.request.user)
+            else:
+                return Response('This user already unlikes this diary.')
+
+            return Response('unliked')
