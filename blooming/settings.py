@@ -7,7 +7,7 @@ SECRET_KEY = 'django-insecure-n0x5$se=tza#7*hu9n7ouldjwpv&4o#d$@ts#9wugj(3woz+u*
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['34.64.176.99']
+ALLOWED_HOSTS = ['*']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -18,6 +18,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'rest_framework',
+    'django_filters',
 
     'apps.authentication',
     'apps.diary',
@@ -87,7 +88,7 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=7),
     'AUTH_HEADER_TYPES': ('JWT',),
     'USER_ID_FIELD': 'username',
     'UPDATE_LAST_LOGIN': True

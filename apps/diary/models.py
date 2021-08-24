@@ -19,7 +19,7 @@ class Diary(models.Model):
     is_private = models.BooleanField(default=True)
 
     def __str__(self):
-        return self.author + self.title
+        return self.author.username + self.title
     
     def _like(self, user):
         self.like.add(user)

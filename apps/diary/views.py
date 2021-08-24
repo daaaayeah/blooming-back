@@ -5,16 +5,26 @@ from rest_framework.response import Response
 
 from django.contrib.auth import get_user_model
 
+from django_filters.rest_framework import DjangoFilterBackend
+
 from .models import Diary
 from .serializers import DiarySerializer
+from .filters import DiaryFilter
+
 from apps.files.models import File
 from apps.utils.language import sample_analyze_sentiment
 from apps.utils.speech import _STT
 
+
+
 class DiaryListCreateAPIView(ListCreateAPIView):
-    queryset = Diary.objects.order_by('?')
     serializer_class = DiarySerializer
     permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = DiaryFilter
+
+    def get_queryset(self):
+        return Diary.objects.filter(author=self.request.user)
 
     def create(self, request, *args, **kwargs):
         request.data['author'] = request.user
@@ -45,14 +55,32 @@ class DiaryListCreateAPIView(ListCreateAPIView):
 
 class DiaryRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
     serializer_class = DiarySerializer
-    queryset = Diary.objects.all()
     lookup_url_kwarg = 'diary_pk'
 
+    def get_queryset(self):
+        return Diary.objects.filter(author=self.request.user)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        request.data['author'] = request.user
+        
+        sentiment = sample_analyze_sentiment(request.data.get('content'))
+        request.data['score'] = sentiment[0]
+        request.data['magnitude'] = sentiment[1]
+
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class DiaryLikeAPIView(UpdateAPIView):
     serializer_class = DiarySerializer
-    queryset = Diary.objects.all()
     lookup_url_kwarg = 'diary_pk'
+
+    def get_queryset(self):
+        return Diary.objects.filter(author=self.request.user)
 
     def update(self, request, *args, **kwargs):
             partial = kwargs.pop('partial', False)
@@ -67,8 +95,10 @@ class DiaryLikeAPIView(UpdateAPIView):
 
 class DiaryUnlikeAPIView(UpdateAPIView):
     serializer_class = DiarySerializer
-    queryset = Diary.objects.all()
     lookup_url_kwarg = 'diary_pk'
+
+    def get_queryset(self):
+        return Diary.objects.filter(author=self.request.user)
 
     def update(self, request, *args, **kwargs):
             instance = self.get_object()
