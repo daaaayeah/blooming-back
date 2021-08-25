@@ -4,6 +4,7 @@ from django.db import models
 from django.contrib.auth import get_user_model
 
 from apps.files.models import File
+from apps.utils.language import sample_analyze_sentiment
 
 class Diary(models.Model):
     author = models.ForeignKey(get_user_model(), on_delete=models.CASCADE)
@@ -26,3 +27,10 @@ class Diary(models.Model):
     
     def _unlike(self, user):
         self.like.remove(user)
+
+    def update_score(self):
+        sentiment = sample_analyze_sentiment(self.content)
+        self.score = sentiment[0]
+        self.magnitude = sentiment[1]
+        self.save()
+        
