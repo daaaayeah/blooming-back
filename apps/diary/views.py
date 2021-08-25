@@ -91,7 +91,7 @@ class DiaryLikeAPIView(UpdateAPIView):
     lookup_url_kwarg = 'diary_pk'
 
     def get_queryset(self):
-        return Diary.objects.filter(author=self.request.user)
+        return Diary.objects.all()
 
     def update(self, request, *args, **kwargs):
             partial = kwargs.pop('partial', False)
@@ -109,10 +109,9 @@ class DiaryUnlikeAPIView(UpdateAPIView):
     lookup_url_kwarg = 'diary_pk'
 
     def get_queryset(self):
-        return Diary.objects.filter(author=self.request.user)
+        return Diary.objects.all()
 
     def update(self, request, *args, **kwargs):
-            instance = self.get_object()
 
             if self.request.user in instance.like.all():
                 instance._unlike(self.request.user)
