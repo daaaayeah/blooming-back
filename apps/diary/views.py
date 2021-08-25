@@ -100,6 +100,9 @@ class DiaryLikeAPIView(UpdateAPIView):
                 return Response('This user already likes this diary.')
             else:
                 instance._like(self.request.user)
+                serializer = self.get_serializer(instance, data=request.data, partial=True)
+                serializer.is_valid(raise_exception=True)
+                self.perform_update(serializer)
 
             return Response('liked')
 
@@ -115,6 +118,9 @@ class DiaryUnlikeAPIView(UpdateAPIView):
 
             if self.request.user in instance.like.all():
                 instance._unlike(self.request.user)
+                serializer = self.get_serializer(instance, data=request.data, partial=True)
+                serializer.is_valid(raise_exception=True)
+                self.perform_update(serializer)
             else:
                 return Response('This user already unlikes this diary.')
 
