@@ -7,5 +7,6 @@ class DiaryFilter(django_filters.FilterSet):
     class Meta:
         model = Diary
         fields = {
-            'created_at': ['gte', 'lte']
+            'created_at': ['gte', 'lte'],
+            'is_private': ['exact']
         }

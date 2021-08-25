@@ -1,4 +1,4 @@
-from rest_framework.generics import CreateAPIView, ListCreateAPIView, RetrieveUpdateDestroyAPIView, UpdateAPIView
+from rest_framework.generics import ListAPIView, CreateAPIView, ListCreateAPIView, RetrieveUpdateDestroyAPIView, UpdateAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from rest_framework.response import Response
@@ -8,7 +8,7 @@ from django.contrib.auth import get_user_model
 from django_filters.rest_framework import DjangoFilterBackend
 
 from .models import Diary
-from .serializers import DiarySerializer
+from .serializers import DiarySerializer, DiaryListSerializer
 from .filters import DiaryFilter
 
 from apps.files.models import File
@@ -18,13 +18,18 @@ from apps.utils.speech import _STT
 
 
 class DiaryListCreateAPIView(ListCreateAPIView):
-    serializer_class = DiarySerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
     filterset_class = DiaryFilter
 
     def get_queryset(self):
         return Diary.objects.filter(author=self.request.user)
+
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return DiaryListSerializer
+        if self.request.method == 'POST':
+            return DiarySerializer
 
     def create(self, request, *args, **kwargs):
         request.data['author'] = request.user
@@ -109,3 +114,45 @@ class DiaryUnlikeAPIView(UpdateAPIView):
                 return Response('This user already unlikes this diary.')
 
             return Response('unliked')
+
+class DiaryListRandomAPIView(ListAPIView):
+    queryset = Diary.objects.filter(is_private=0).order_by('?')
+    serializer_class = DiarySerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = DiaryFilter
+
+class DiarySentimentScoreAPIView(ListAPIView):
+    serializer_class = DiarySerializer
+    permission_classess = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Diary.objects.filter(author=self.request.user)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        date = request.query_params.get('month', None)
+        
+        year = date.split('-')[0]
+        month = date.split('-')[1]
+
+        if date: 
+            next_month = '-%02d'%(int(month)+1)
+            queryset =queryset.filter(created_at__gte=date+'-01', created_at__lt=year+next_month+'-01')
+            
+            s = 0
+
+            for obj in queryset.all():
+                s += obj.score
+            
+            mean = s / queryset.count()
+        
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        serializer.data['mean'] = mean
+        return Response(serializer.data)
