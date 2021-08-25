@@ -1,4 +1,10 @@
-from rest_framework.generics import ListAPIView, CreateAPIView, ListCreateAPIView, RetrieveUpdateDestroyAPIView, UpdateAPIView
+from rest_framework.generics import (
+    ListAPIView,
+    CreateAPIView,
+    ListCreateAPIView,
+    RetrieveUpdateDestroyAPIView,
+    UpdateAPIView
+)
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from rest_framework.response import Response
@@ -8,7 +14,7 @@ from django.contrib.auth import get_user_model
 from django_filters.rest_framework import DjangoFilterBackend
 
 from .models import Diary
-from .serializers import DiarySerializer, DiaryListSerializer
+from .serializers import DiarySerializer, DiaryListSerializer, DiaryStatsSerializer
 from .filters import DiaryFilter
 
 from apps.files.models import File
@@ -130,16 +136,19 @@ class DiarySentimentScoreAPIView(ListAPIView):
         return Diary.objects.filter(author=self.request.user)
 
     def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
-        
+
         date = request.query_params.get('month', None)
         
-        year = date.split('-')[0]
-        month = date.split('-')[1]
+        try:
+            year = date.split('-')[0]
+            month = date.split('-')[1]
+        
+        except IndexError:
+            return 'Date should be given in YYYY-MM format'
 
         if date: 
             next_month = '-%02d'%(int(month)+1)
-            queryset =queryset.filter(created_at__gte=date+'-01', created_at__lt=year+next_month+'-01')
+            queryset = Diary.objects.filter(author=request.user, created_at__gte=date+'-01', created_at__lt=year+next_month+'-01')
             
             s = 0
 
@@ -147,12 +156,56 @@ class DiarySentimentScoreAPIView(ListAPIView):
                 s += obj.score
             
             mean = s / queryset.count()
-        
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
 
-        serializer = self.get_serializer(queryset, many=True)
-        serializer.data['mean'] = mean
-        return Response(serializer.data)
+            response = super().list(request, *args, **kwargs)
+            response.data['mean'] = mean
+            return response
+        else:
+            return 'Date should be provided'
+
+class DiaryCountAPIView(ListAPIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        return Diary.objects.filter(author=self.request.user)
+    
+    def list(self, request, *args, **kwargs):
+        return Response({'count': self.get_queryset().count()})
+
+class DiarySharedAPIView(ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = DiarySerializer
+    
+    def get_queryset(self):
+        return Diary.objects.filter(author=self.request.user, is_private=0)
+
+class DiaryLikedAPIView(ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = DiarySerializer
+    
+    def get_queryset(self):
+        return Diary.objects.filter(like__username=self.request.user, is_private=0)
+
+
+class DiaryStatsAPIView(ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = DiaryStatsSerializer
+
+    
+    def get_queryset(self):
+        
+        date = self.request.query_params.get('month', None)
+        
+        try:
+            year = date.split('-')[0]
+            month = date.split('-')[1]
+        
+        except IndexError:
+            return 'Date should be given in YYYY-MM format'
+
+        if date: 
+            next_month = '-%02d'%(int(month)+1)
+            return Diary.objects.filter(author=self.request.user, created_at__gte=date+'-01', created_at__lt=year+next_month+'-01')
+        else:
+            return 'Date should be provided'
+    

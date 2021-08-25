@@ -19,3 +19,9 @@ class DiaryListSerializer(serializers.ModelSerializer):
         model = Diary
         fields = ['id', 'author', 'created_at', 'score', 'magnitude', 'voice_file']
 
+
+class DiaryStatsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Diary
+        fields = ['id', 'created_at', 'score', 'magnitude']
