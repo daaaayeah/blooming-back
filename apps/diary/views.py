@@ -149,24 +149,29 @@ class DiarySentimentScoreAPIView(ListAPIView):
             month = date.split('-')[1]
         
         except IndexError:
-            return 'Date should be given in YYYY-MM format'
+            return Response('Date should be given in YYYY-MM format')
 
         if date: 
-            next_month = '-%02d'%(int(month)+1)
-            queryset = Diary.objects.filter(author=request.user, created_at__gte=date+'-01', created_at__lt=year+next_month+'-01')
+            if month == '12':
+                next_date = str(int(year)+1)+'-01-01'
+            else:
+                next_date = year+'-%02d'%(int(month)+1)+'-01'
+            queryset = Diary.objects.filter(author=request.user, created_at__gte=date+'-01', created_at__lt=next_date)
             
             s = 0
 
             for obj in queryset.all():
                 s += obj.score
             
-            mean = s / queryset.count()
-
-            response = super().list(request, *args, **kwargs)
-            response.data['mean'] = mean
-            return response
+            if queryset.count() != 0:
+                mean = s / queryset.count()
+                response = super().list(request, *args, **kwargs)
+                response.data['mean'] = mean
+                return response
+            else:
+                return Response('No diaries on {}'.format(date))
         else:
-            return 'Date should be provided'
+            return Response('Date should be provided')
 
 class DiaryCountAPIView(ListAPIView):
     permission_classes = [IsAuthenticated]
@@ -206,11 +211,16 @@ class DiaryStatsAPIView(ListAPIView):
             month = date.split('-')[1]
         
         except IndexError:
-            return 'Date should be given in YYYY-MM format'
+            return Response('Date should be given in YYYY-MM format')
+        
 
         if date: 
-            next_month = '-%02d'%(int(month)+1)
-            return Diary.objects.filter(author=self.request.user, created_at__gte=date+'-01', created_at__lt=year+next_month+'-01')
+            if month == '12':
+                next_date = str(int(year)+1)+'-01-01'
+            else:
+                next_date = year+'-%02d'%(int(month)+1)+'-01'
+
+            return Diary.objects.filter(author=self.request.user, created_at__gte=date+'-01', created_at__lt=next_date)
         else:
-            return 'Date should be provided'
+            return Response('Date should be provided')
     
