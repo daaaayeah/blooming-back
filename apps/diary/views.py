@@ -94,7 +94,6 @@ class DiaryLikeAPIView(UpdateAPIView):
         return Diary.objects.all()
 
     def update(self, request, *args, **kwargs):
-            partial = kwargs.pop('partial', False)
             instance = self.get_object()
 
             if self.request.user in instance.like.all():
@@ -112,6 +111,7 @@ class DiaryUnlikeAPIView(UpdateAPIView):
         return Diary.objects.all()
 
     def update(self, request, *args, **kwargs):
+            instance = self.get_object()
 
             if self.request.user in instance.like.all():
                 instance._unlike(self.request.user)
