@@ -148,7 +148,7 @@ class DiarySentimentScoreAPIView(ListAPIView):
             year = date.split('-')[0]
             month = date.split('-')[1]
         
-        except IndexError:
+        except:
             return Response('Date should be given in YYYY-MM format')
 
         if date: 
@@ -176,11 +176,30 @@ class DiarySentimentScoreAPIView(ListAPIView):
 class DiaryCountAPIView(ListAPIView):
     permission_classes = [IsAuthenticated]
     
-    def get_queryset(self):
-        return Diary.objects.filter(author=self.request.user)
-    
     def list(self, request, *args, **kwargs):
-        return Response({'count': self.get_queryset().count()})
+
+        date = request.query_params.get('month', None)
+        
+        try:
+            year = date.split('-')[0]
+            month = date.split('-')[1]
+        
+        except:
+            return Response('Date should be given in YYYY-MM format')
+
+        if date: 
+            if month == '12':
+                next_date = str(int(year)+1)+'-01-01'
+            else:
+                next_date = year+'-%02d'%(int(month)+1)+'-01'
+            queryset = Diary.objects.filter(author=request.user, created_at__gte=date+'-01', created_at__lt=next_date)
+
+            return Response({'count': queryset.count()})
+
+        else:
+            return Response('Date should be provided')
+
+        
 
 class DiarySharedAPIView(ListAPIView):
     permission_classes = [IsAuthenticated]
@@ -210,7 +229,7 @@ class DiaryStatsAPIView(ListAPIView):
             year = date.split('-')[0]
             month = date.split('-')[1]
         
-        except IndexError:
+        except:
             return Response('Date should be given in YYYY-MM format')
         
 
